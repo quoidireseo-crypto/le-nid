@@ -56,6 +56,12 @@ export const SEED = {
       id: 'n5', type: 'polaroid', auteur: 'leo', photo: '⚽',
       texte: 'Victoire 3-1 samedi !',
     },
+    {
+      // Daté d'il y a un an, jour pour jour : alimente le souvenir « Ce jour-là ».
+      id: 'n6', type: 'polaroid', auteur: 'papi', photo: '🏖️',
+      texte: 'Notre journée à la plage, déjà un an !',
+      ts: new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString(),
+    },
   ],
   messages: [
     { id: 'm1', auteur: 'mamie', texte: 'Bonjour mes chéris ! Qui vient dimanche ?', heure: '9:12', ts: new Date(Date.now() - 86400000).toISOString() },

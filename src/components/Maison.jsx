@@ -1,6 +1,7 @@
 import { membre } from '../data.js'
-import { calculerFlamme } from '../engagement.js'
+import { calculerFlamme, souvenirsDuJour } from '../engagement.js'
 import QuestionDuJour from './QuestionDuJour.jsx'
+import Inviter from './Inviter.jsx'
 
 const ETOILES = [
   { top: '14%', left: '8%' }, { top: '8%', left: '30%' },
@@ -8,13 +9,14 @@ const ETOILES = [
   { top: '24%', left: '90%' }, { top: '30%', left: '18%' },
 ]
 
-export default function Maison({ donnees, setDonnees, allerA, moi, changerIdentite, notifPermission, demanderNotifPermission }) {
+export default function Maison({ donnees, setDonnees, allerA, moi, changerIdentite, notifPermission, demanderNotifPermission, foyer, multiFoyer, changerDeFoyer }) {
   const derniereNote = donnees.frigo[donnees.frigo.length - 1]
   const dernierMessage = donnees.messages[donnees.messages.length - 1]
   const derniereRecette = donnees.recettes[0]
   const dernierAlbum = donnees.albums[donnees.albums.length - 1]
   const membres = Object.entries(donnees.membres || {})
   const flamme = calculerFlamme(donnees)
+  const souvenirs = souvenirsDuJour(donnees)
 
   function renommerFoyer() {
     const nouveau = window.prompt('Quel est le nom de votre famille ?', donnees.nomFamille)
@@ -79,6 +81,17 @@ export default function Maison({ donnees, setDonnees, allerA, moi, changerIdenti
             >
               ce n'est pas vous ?
             </button>
+            {multiFoyer && changerDeFoyer && (
+              <>
+                {'  ·  '}
+                <button
+                  onClick={changerDeFoyer}
+                  style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}
+                >
+                  changer de foyer
+                </button>
+              </>
+            )}
           </p>
         )}
 
@@ -138,6 +151,15 @@ export default function Maison({ donnees, setDonnees, allerA, moi, changerIdenti
 
       <QuestionDuJour donnees={donnees} setDonnees={setDonnees} moi={moi} />
 
+      {souvenirs.length > 0 && (
+        <button className="carte teaser-souvenir" onClick={() => allerA('grenier')} aria-label="Voir le souvenir du jour dans le Grenier">
+          <span className="teaser-emoji" aria-hidden="true">✨</span>
+          <span>
+            <strong>Ce jour-là…</strong> un souvenir refait surface. À découvrir au Grenier →
+          </span>
+        </button>
+      )}
+
       {notifPermission === 'default' && (
         <div className="carte" role="status">
           <h3>🔔 Ne rien rater</h3>
@@ -167,6 +189,8 @@ export default function Maison({ donnees, setDonnees, allerA, moi, changerIdenti
           </div>
         ))}
       </section>
+
+      {multiFoyer && <Inviter foyer={foyer} nomFamille={donnees.nomFamille} />}
     </>
   )
 }

@@ -58,6 +58,22 @@ Puis ouvrir http://localhost:5173 — l'appli fonctionne, mais chaque appareil a
 2. Copiez-collez le contenu de `supabase-storage.sql` et cliquez **Run**.
 3. Ça crée un espace de stockage nommé `photos`. Le bouton "📷 Ajouter une photo" du Frigo fonctionne dès que c'est fait.
 
+### f) Activer les vraies notifications push (optionnel, avancé)
+
+Pour que les notifications réveillent le téléphone **même appli fermée** :
+
+1. **SQL Editor** → **New query** → contenu de `supabase-notifications.sql` → **Run** (crée la table `subscriptions`).
+2. Générer une paire de clés VAPID : `npx web-push generate-vapid-keys`.
+3. Poser les secrets de la fonction :
+   ```bash
+   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:vous@exemple.fr
+   supabase functions deploy pousser-notifications
+   ```
+4. **Database → Webhooks** : créer un webhook sur la table `nids`, événement **UPDATE**, vers la fonction `pousser-notifications`.
+5. Côté appli : ajouter `VITE_VAPID_PUBLIC_KEY=<clé publique>` (dans `.env.local` et sur Vercel).
+
+Sans ces étapes, l'appli reste pleinement fonctionnelle : les notifications se limitent au navigateur ouvert (comme avant).
+
 ---
 
 ## 3. Déployer sur Vercel
@@ -81,8 +97,8 @@ Chaque membre de la famille ouvre le lien Vercel sur son téléphone, saisit la 
 
 ## Comment ça marche, en clair
 
-- **Une seule maison, une seule clé** : il n'y a qu'un foyer, celui de votre famille. À la première ouverture, chacun doit saisir LA clé de la maison (définie par la variable d'environnement `VITE_NID_CODE` sur Vercel — par défaut `notre-maison`). Une fois la clé validée, l'appareil s'en souvient : on ne la retape jamais.
-- **Transmettre la clé** : envoyez le lien + la clé par SMS ou WhatsApp aux membres de la famille. Sans la clé, on reste à la porte.
+- **Deux modes.** Par défaut (aucune variable `VITE_NID_CODE`), l'appli est en **mode produit multi-foyer** : au premier lancement, on choisit **« Créer notre Nid »** (l'appli génère une clé du style `tendre-tilleul-84`) ou **« Rejoindre un Nid existant »**. Si vous définissez `VITE_NID_CODE`, l'appli reste en **mode mono-famille verrouillé** (comportement historique : une seule maison, une seule clé fixe).
+- **Inviter la famille (mode produit)** : sur la Maison, la carte **« 💌 Inviter la famille »** partage un **lien d'invitation** (`…?nid=tendre-tilleul-84`). En l'ouvrant, l'invité arrive directement sur l'écran « Rejoindre » avec la clé **déjà pré-remplie** — un seul geste, idéal pour les grands-parents. Bouton **Partager** natif (WhatsApp, SMS…) ou **Copier le lien**.
 - **Garder les données d'un ancien Nid** : si votre famille avait déjà un Nid (ex. clé `tendre-tilleul-84`), mettez cette clé comme valeur de `VITE_NID_CODE` — elle devient la clé officielle de la maison et toutes les données existantes sont conservées.
 - **Niveau de sécurité, honnêtement** : la clé est vérifiée dans l'application elle-même, ce qui protège très bien contre les curieux et les visiteurs de passage, mais une personne très technique pourrait la retrouver en fouillant le code de la page. C'est une serrure de maison familiale, pas un coffre de banque — parfaitement adapté à cet usage.
 - **Qui êtes-vous ?** — au premier lancement sur chaque appareil, on choisit son avatar. C'est ce qui permet à vos messages et vos post-its de porter le bon nom.
@@ -97,7 +113,7 @@ L'appli est **installable** : sur le lien Vercel, le navigateur propose « Ajout
 
 - Les appels vidéo du Salon sont une démo (pas de vrai flux vidéo).
 - Les photos du Frigo sont réelles (importées depuis l'appareil) si le stockage Supabase est activé ; les albums du Grenier restent illustrés par des emoji pour l'instant.
-- **Notifications** : ce sont des notifications navigateur, qui fonctionnent quand l'appli est ouverte (même en arrière-plan sur la plupart des téléphones). Elles ne réveillent pas le téléphone si l'appli est complètement fermée — pour ça, il faudrait un vrai service de "push" avec un serveur dédié, une étape plus avancée.
+- **Notifications** : par défaut, ce sont des notifications navigateur (appli ouverte). Les **vraies notifications push** qui réveillent le téléphone appli fermée sont désormais disponibles en option — voir la section 2f (table `subscriptions` + fonction Edge `pousser-notifications` + clés VAPID).
 - La sécurité repose sur la clé du foyer, pas sur un vrai compte utilisateur avec mot de passe — suffisant pour un usage familial de confiance, mais à faire évoluer si le projet grandit.
 - Un **nouveau foyer démarre désormais vierge** (plus de fuite des données de démo « Dupont ») : chaque famille remplit son propre Nid. Les données de démo ne servent qu'à l'aperçu local, quand Supabase n'est pas branché.
 - Le nom de famille est modifiable (icône ✏️ sur la Maison), mais les prénoms des membres restent ceux de la démo pour l'instant.

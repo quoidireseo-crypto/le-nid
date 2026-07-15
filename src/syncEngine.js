@@ -14,7 +14,7 @@
 // ————————————————————————————————————————————
 import { supabase, supabaseActif } from './supabaseClient.js'
 import { charger, sauvegarder, completer } from './data.js'
-import { CODE_FOYER } from './sync.js'
+import { foyerActif } from './sync.js'
 import { jourClef } from './engagement.js'
 
 const TABLE = 'nids'
@@ -24,6 +24,7 @@ export function creerMoteur({ onEtat, onNotif, onErreur, getMoi }) {
   let serveur = charger()   // dernier état autoritatif connu (local au démarrage)
   let enAttente = []        // reducers locaux pas encore confirmés par le serveur
   let baseUpdatedAt = null  // updated_at du serveur (jeton de concurrence optimiste)
+  let code = null           // clé du foyer actif (fixée à la connexion)
   let canal = null
   let envoiEnCours = false
   let relancer = false
@@ -78,10 +79,10 @@ export function creerMoteur({ onEtat, onNotif, onErreur, getMoi }) {
 
   function ecouter() {
     canal = supabase
-      .channel(`nid-${CODE_FOYER}`)
+      .channel(`nid-${code}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: TABLE, filter: `code=eq.${CODE_FOYER}` },
+        { event: 'UPDATE', schema: 'public', table: TABLE, filter: `code=eq.${code}` },
         (p) => appliquerServeur(p.new.donnees, p.new.updated_at)
       )
       .subscribe()
@@ -101,7 +102,7 @@ export function creerMoteur({ onEtat, onNotif, onErreur, getMoi }) {
     const candidat = completer(lot.reduce((acc, r) => r(acc), serveur))
     try {
       const { data, error } = await supabase.rpc('push_nid', {
-        p_code: CODE_FOYER,
+        p_code: code,
         p_donnees: candidat,
         p_expected: baseUpdatedAt,
       })
@@ -129,11 +130,12 @@ export function creerMoteur({ onEtat, onNotif, onErreur, getMoi }) {
 
   // ——— Connexion initiale ———
   async function connecter() {
-    if (!supabaseActif) { diffuser(); return }
+    code = foyerActif()
+    if (!supabaseActif || !code) { diffuser(); return }
     const { data, error } = await supabase
       .from(TABLE)
       .select('donnees, updated_at')
-      .eq('code', CODE_FOYER)
+      .eq('code', code)
       .maybeSingle()
     if (error) throw error
     if (data) {

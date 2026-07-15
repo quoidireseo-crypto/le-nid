@@ -60,6 +60,37 @@ export function calculerFlamme(donnees, date = new Date()) {
   return { jours, aujourdhui: dates.has(aujourdhui) }
 }
 
+// ——— « Ce jour-là » (souvenirs qui refont surface) ———
+// Renvoie les contenus passés tombant le MÊME jour calendaire (mois + jour) que
+// `date`, mais une année précédente. La nostalgie comme récompense récurrente.
+export function souvenirsDuJour(donnees, date = new Date()) {
+  const cible = `${date.getMonth()}-${date.getDate()}`
+  const anneeRef = date.getFullYear()
+  const souvenirs = []
+  const ajouter = (ts, type, contenu, auteur) => {
+    if (!ts) return
+    const d = new Date(ts)
+    if (isNaN(d.getTime())) return
+    if (`${d.getMonth()}-${d.getDate()}` !== cible) return
+    const annees = anneeRef - d.getFullYear()
+    if (annees < 1) return // uniquement le passé (années précédentes)
+    souvenirs.push({ ts, type, contenu, auteur, annees })
+  }
+  for (const m of donnees.messages || []) ajouter(m.ts, 'message', m.texte, m.auteur)
+  for (const n of donnees.frigo || []) {
+    ajouter(n.ts, n.type === 'polaroid' ? 'photo' : 'note', n.texte || n.photo, n.auteur)
+  }
+  for (const reps of Object.values(donnees.reponsesJour || {})) {
+    for (const [id, r] of Object.entries(reps)) ajouter(r.ts, 'reponse', r.texte, id)
+  }
+  return souvenirs.sort((a, b) => b.annees - a.annees)
+}
+
+// Étiquette humaine : « il y a 1 an », « il y a 2 ans »…
+export function ilYaLabel(annees) {
+  return `il y a ${annees} an${annees > 1 ? 's' : ''}`
+}
+
 // ——— Réactions ———
 // Bascule (ajoute/retire) la réaction `emoji` de `moi` sur un objet reactions
 // de forme { emoji: [idsMembres] }. Renvoie un NOUVEL objet (immuable).

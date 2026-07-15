@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { charger, membre, couleurAleatoire } from './data.js'
 import { supabaseActif } from './supabaseClient.js'
-import { CODE_FOYER, codeEnregistre, enregistrerCode } from './sync.js'
+import { NID_FIXE, foyerActif, definirFoyer, oublierFoyer, foyerExiste, genererCodeLibre } from './sync.js'
 import { creerMoteur } from './syncEngine.js'
 import { identiteEnregistree, enregistrerIdentite, oublierIdentite, genererIdMembre } from './identite.js'
 import { permissionNotifications, demanderPermission, notifier } from './notifications.js'
+import { activerPushDistant } from './push.js'
+import Accueil from './components/Accueil.jsx'
 import Cle from './components/Cle.jsx'
 import Identite from './components/Identite.jsx'
 import Maison from './components/Maison.jsx'
@@ -29,11 +31,12 @@ export default function App() {
   const [moi, setMoi] = useState(identiteEnregistree)
   const [vue, setVue] = useState(() => {
     if (!supabaseActif) return 'demarrage'
-    // La clé déjà validée sur cet appareil ? On entre directement.
-    return codeEnregistre() === CODE_FOYER ? 'chargement' : 'cle'
+    if (foyerActif()) return 'chargement'   // foyer déjà créé/rejoint sur cet appareil
+    return NID_FIXE ? 'cle' : 'accueil'      // mode fixe : la porte ; mode produit : créer/rejoindre
   })
   const [erreur, setErreur] = useState(null)
   const [enCours, setEnCours] = useState(false)
+  const [nidInvite, setNidInvite] = useState(null) // clé pré-remplie depuis un lien ?nid=
   const [notifPermission, setNotifPermission] = useState(permissionNotifications)
 
   const moiRef = useRef(moi)
@@ -69,11 +72,18 @@ export default function App() {
 
     if (!supabaseActif) {
       moteur.connecter().finally(suite)
-    } else if (codeEnregistre() === CODE_FOYER) {
+    } else if (foyerActif()) {
       moteur.connecter().then(suite).catch(() => {
         suite()
         setErreur('Connexion à la maison impossible pour le moment — vos données restent sur cet appareil.')
       })
+    } else {
+      // Pas encore de foyer : un lien d'invitation ?nid=CLE pré-remplit l'écran « Rejoindre ».
+      const invite = new URLSearchParams(window.location.search).get('nid')
+      if (invite && !NID_FIXE) {
+        setNidInvite(invite.trim().toLowerCase())
+        setVue('cle')
+      }
     }
     return () => moteur.arreter()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,23 +94,60 @@ export default function App() {
     moteurRef.current?.muter(reducer)
   }
 
-  // Validation de la clé saisie sur l'écran d'entrée
+  function nettoyerUrl() {
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname)
+  }
+
+  // Rejoindre un Nid avec sa clé.
+  // Mode fixe (VITE_NID_CODE) : la clé doit correspondre. Mode produit : le foyer doit exister.
   async function entrerAvecCle(saisie) {
     setErreur(null)
-    if (saisie !== CODE_FOYER.toLowerCase()) {
+    const code = (saisie || '').trim().toLowerCase()
+    if (!code) return
+    if (NID_FIXE && code !== NID_FIXE.toLowerCase()) {
       setErreur('Ce n\u2019est pas la bonne clé. Vérifiez auprès de la famille.')
       return
     }
     setEnCours(true)
     try {
+      if (!NID_FIXE && !(await foyerExiste(code))) {
+        setErreur('Aucun Nid ne porte cette clé. Vérifiez auprès de la famille.')
+        return
+      }
+      definirFoyer(NID_FIXE || code)
       await moteurRef.current.connecter()
-      enregistrerCode(CODE_FOYER)
+      nettoyerUrl()
       suite()
     } catch {
       setErreur('Connexion impossible pour le moment. Réessayez dans un instant.')
     } finally {
       setEnCours(false)
     }
+  }
+
+  // Créer un nouveau Nid (mode produit) : génère une clé libre, crée le foyer vide.
+  async function creerNouveauNid() {
+    setErreur(null)
+    setEnCours(true)
+    try {
+      const code = await genererCodeLibre()
+      definirFoyer(code)
+      await moteurRef.current.connecter() // le foyer inexistant est créé au premier envoi
+      nettoyerUrl()
+      suite()
+    } catch {
+      oublierFoyer()
+      setErreur('Création impossible pour le moment. Réessayez dans un instant.')
+    } finally {
+      setEnCours(false)
+    }
+  }
+
+  // Quitter le foyer actuel pour en créer/rejoindre un autre.
+  function changerDeFoyer() {
+    oublierFoyer()
+    oublierIdentite()
+    window.location.reload()
   }
 
   // Crée le profil (prénom + emoji choisis) et l'ajoute aux membres partagés du foyer
@@ -124,6 +171,11 @@ export default function App() {
   async function demanderNotifPermission() {
     const resultat = await demanderPermission()
     setNotifPermission(resultat)
+    // Si le push distant est configuré (Phase 2 déployée), on abonne aussi
+    // l'appareil pour recevoir des notifications même appli fermée.
+    if (resultat === 'granted') {
+      activerPushDistant(foyerActif(), moiRef.current).catch(() => {})
+    }
   }
 
   if (vue === 'demarrage' || vue === 'chargement') {
@@ -135,12 +187,27 @@ export default function App() {
       </div>
     )
   }
-  if (vue === 'cle') return <Cle onEntrer={entrerAvecCle} erreur={erreur} enCours={enCours} />
+  if (vue === 'accueil') {
+    return <Accueil onCreer={creerNouveauNid} onRejoindre={() => { setErreur(null); setVue('cle') }} enCours={enCours} erreur={erreur} />
+  }
+  if (vue === 'cle') {
+    return (
+      <Cle
+        onEntrer={entrerAvecCle}
+        erreur={erreur}
+        enCours={enCours}
+        valeurInitiale={nidInvite || ''}
+        rejoindre={!NID_FIXE}
+        onRetour={NID_FIXE ? null : () => { setErreur(null); setVue('accueil') }}
+      />
+    )
+  }
   if (vue === 'identite') return <Identite onValider={validerIdentite} />
 
   const props = {
     donnees, setDonnees: muter, allerA: setOnglet, moi,
     changerIdentite, notifPermission, demanderNotifPermission,
+    foyer: foyerActif(), multiFoyer: supabaseActif && !NID_FIXE, changerDeFoyer,
   }
 
   return (
