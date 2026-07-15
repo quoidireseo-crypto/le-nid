@@ -15,10 +15,13 @@ export default function Salon({ donnees, setDonnees, moi }) {
     e.preventDefault()
     const propre = texte.trim()
     if (!propre) return
-    const heure = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    const maintenant = new Date()
+    const heure = maintenant.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     setDonnees((d) => ({
       ...d,
-      messages: [...d.messages, { id: `m${Date.now()}`, auteur: moi, texte: propre, heure }],
+      // ts (horodatage ISO) : socle des futurs souvenirs « Ce jour-là » et de la
+      // Flamme du Nid ; heure reste pour l'affichage immédiat.
+      messages: [...d.messages, { id: `m${Date.now()}`, auteur: moi, texte: propre, heure, ts: maintenant.toISOString() }],
     }))
     setTexte('')
   }

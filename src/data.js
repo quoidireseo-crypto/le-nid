@@ -2,6 +2,7 @@
 // Le Nid — données de démonstration (famille Dupont)
 // Les modifications sont sauvegardées sur l'appareil (localStorage).
 // ————————————————————————————————————————————
+import { supabaseActif } from './supabaseClient.js'
 
 // Membres par défaut (démo). En usage réel, chaque personne ajoute son propre
 // prénom et emoji au premier lancement — voir src/components/Identite.jsx.
@@ -168,14 +169,31 @@ export const QUIZ = [
   },
 ]
 
+// Structure « vide » d'un foyer : uniquement les champs attendus, aucun contenu.
+// Sert de squelette par défaut pour qu'un NOUVEAU foyer démarre vierge — sans
+// hériter des données de démonstration (la famille Dupont). Le contenu de démo
+// (SEED) n'est plus utilisé qu'en aperçu local, quand Supabase n'est pas branché.
+export const STRUCTURE = {
+  nomFamille: '',
+  membres: {},
+  frigo: [],
+  messages: [],
+  recettes: [],
+  albums: [],
+  classementQuiz: {},
+  evenements: [],
+}
+
 const KEY = 'le-nid-v1'
 
 export function charger() {
   try {
     const brut = localStorage.getItem(KEY)
-    if (brut) return { ...SEED, ...JSON.parse(brut) }
-  } catch (e) { /* stockage indisponible : on repart des données de démo */ }
-  return structuredClone(SEED)
+    if (brut) return completer(JSON.parse(brut))
+  } catch (e) { /* stockage indisponible */ }
+  // Avec Supabase, un foyer neuf démarre vierge ; sans Supabase (aperçu local),
+  // on affiche la famille de démo pour ne pas présenter une maison vide.
+  return structuredClone(supabaseActif ? STRUCTURE : SEED)
 }
 
 export function sauvegarder(donnees) {
@@ -188,8 +206,9 @@ export function membre(membres, id) {
   return (membres && membres[id]) || { nom: 'Quelqu\u2019un', emoji: '🙂', couleur: '#cbd5cf' }
 }
 
-// Complète les données reçues d'un foyer créé avant une mise à jour
-// (ex. avant l'ajout de "membres" ou "nomFamille") avec les valeurs par défaut.
+// Garantit que toutes les clés attendues existent (foyers créés avant l'ajout
+// d'un champ, données partielles…), SANS injecter le contenu de démo : un foyer
+// réel n'affiche que ses propres membres et son propre contenu.
 export function completer(donnees) {
-  return { ...SEED, ...donnees, membres: { ...SEED.membres, ...(donnees?.membres || {}) } }
+  return { ...STRUCTURE, ...donnees, membres: { ...(donnees?.membres || {}) } }
 }

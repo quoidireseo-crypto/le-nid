@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Le Nid">
+  <rect width="512" height="512" fill="#33403a"/>
+  <!-- contenu réduit dans la zone de sécurité (80 %) pour les icônes masquées -->
+  <g transform="translate(256 256) scale(0.78) translate(-256 -256)">
+    <g fill="#fbf7ee" opacity="0.28">
+      <circle cx="345" cy="150" r="11"/>
+      <circle cx="360" cy="126" r="9"/>
+      <circle cx="372" cy="106" r="7"/>
+    </g>
+    <rect x="326" y="168" width="26" height="52" rx="4" fill="#a9553f"/>
+    <path d="M256 132 L400 252 L112 252 Z" fill="#a9553f"/>
+    <rect x="152" y="252" width="208" height="150" rx="12" fill="#fbf7ee"/>
+    <rect x="192" y="288" width="56" height="56" rx="9" fill="#f5b942"/>
+    <rect x="264" y="288" width="56" height="56" rx="9" fill="#fce9bd"/>
+    <rect x="230" y="360" width="52" height="42" rx="7" fill="#7e9b84"/>
+  </g>
+</svg>

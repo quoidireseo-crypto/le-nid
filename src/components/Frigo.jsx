@@ -18,7 +18,7 @@ export default function Frigo({ donnees, setDonnees, moi }) {
     const couleur = COULEURS[donnees.frigo.length % COULEURS.length]
     setDonnees((d) => ({
       ...d,
-      frigo: [...d.frigo, { id: `n${Date.now()}`, type: 'postit', couleur, auteur: moi, texte: propre }],
+      frigo: [...d.frigo, { id: `n${Date.now()}`, type: 'postit', couleur, auteur: moi, texte: propre, ts: new Date().toISOString() }],
     }))
     setNouveau('')
   }
@@ -37,7 +37,7 @@ export default function Frigo({ donnees, setDonnees, moi }) {
       const url = await uploaderPhoto(fichier)
       setDonnees((d) => ({
         ...d,
-        frigo: [...d.frigo, { id: `n${Date.now()}`, type: 'polaroid', auteur: moi, photo: url, texte: '' }],
+        frigo: [...d.frigo, { id: `n${Date.now()}`, type: 'polaroid', auteur: moi, photo: url, texte: '', ts: new Date().toISOString() }],
       }))
     } catch {
       setErreurPhoto('L\u2019envoi de la photo a échoué. Réessayez.')

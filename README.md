@@ -32,6 +32,7 @@ Puis ouvrir http://localhost:5173 — l'appli fonctionne, mais chaque appareil a
 1. Dans le menu de gauche : **SQL Editor** → **New query**.
 2. Copiez-collez tout le contenu du fichier `supabase-setup.sql` (fourni dans ce dossier) et cliquez sur **Run**.
 3. Ça crée la table `nids` et active la synchronisation en temps réel.
+4. **New query** à nouveau, cette fois avec le contenu de `supabase-push.sql`, puis **Run**. Ça installe l'écriture atomique (contrôle de concurrence) : deux personnes qui postent en même temps ne s'écrasent plus.
 
 ### c) Récupérer vos clés
 
@@ -88,12 +89,17 @@ Chaque membre de la famille ouvre le lien Vercel sur son téléphone, saisit la 
 - **Ça marche aussi hors-ligne** : sans connexion, l'appli continue de fonctionner sur les données déjà chargées (grâce au filet de sécurité localStorage), et se resynchronise dès que la connexion revient.
 - **« changer de foyer »**, en petit sous le titre de la Maison, permet de sortir d'un Nid et d'en rejoindre un autre (utile pour les tests, ou si un membre appartient à deux familles).
 
+## Installer sur le téléphone (PWA)
+
+L'appli est **installable** : sur le lien Vercel, le navigateur propose « Ajouter à l'écran d'accueil » (menu ⋮ sur Android, bouton Partager sur iPhone). Elle s'ouvre alors en plein écran comme une vraie app, et fonctionne hors-ligne sur les données déjà chargées.
+
 ## Limites actuelles (honnêtes)
 
 - Les appels vidéo du Salon sont une démo (pas de vrai flux vidéo).
 - Les photos du Frigo sont réelles (importées depuis l'appareil) si le stockage Supabase est activé ; les albums du Grenier restent illustrés par des emoji pour l'instant.
 - **Notifications** : ce sont des notifications navigateur, qui fonctionnent quand l'appli est ouverte (même en arrière-plan sur la plupart des téléphones). Elles ne réveillent pas le téléphone si l'appli est complètement fermée — pour ça, il faudrait un vrai service de "push" avec un serveur dédié, une étape plus avancée.
 - La sécurité repose sur la clé du foyer, pas sur un vrai compte utilisateur avec mot de passe — suffisant pour un usage familial de confiance, mais à faire évoluer si le projet grandit.
+- Un **nouveau foyer démarre désormais vierge** (plus de fuite des données de démo « Dupont ») : chaque famille remplit son propre Nid. Les données de démo ne servent qu'à l'aperçu local, quand Supabase n'est pas branché.
 - Le nom de famille est modifiable (icône ✏️ sur la Maison), mais les prénoms des membres restent ceux de la démo pour l'instant.
 
 ## Accessibilité

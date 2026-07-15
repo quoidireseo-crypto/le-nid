@@ -30,8 +30,10 @@ export default function Maison({ donnees, setDonnees, allerA, moi, changerIdenti
       activite: derniereNote ? `${donnees.frigo.length} choses aimantées` : 'Rien pour l\u2019instant',
     },
     {
-      id: 'cuisine', nom: 'Cuisine', icone: '🍲', allumee: true,
-      activite: `Recette de ${membre(donnees.membres, derniereRecette.auteur).nom}`,
+      id: 'cuisine', nom: 'Cuisine', icone: '🍲', allumee: donnees.recettes.length > 0,
+      activite: derniereRecette
+        ? `Recette de ${membre(donnees.membres, derniereRecette.auteur).nom}`
+        : 'À garnir de recettes',
     },
     {
       id: 'grenier', nom: 'Grenier', icone: '📸', allumee: donnees.albums.length > 0,

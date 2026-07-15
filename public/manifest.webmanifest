@@ -1,0 +1,18 @@
+{
+  "name": "Le Nid — la maison de famille",
+  "short_name": "Le Nid",
+  "description": "La maison de famille, dans votre poche. Réseau privé, chaleureux et intergénérationnel.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fbf7ee",
+  "theme_color": "#33403a",
+  "categories": ["social", "lifestyle"],
+  "icons": [
+    { "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icone-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

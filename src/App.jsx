@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { charger, sauvegarder, membre, completer, couleurAleatoire } from './data.js'
+import { charger, membre, couleurAleatoire } from './data.js'
 import { supabaseActif } from './supabaseClient.js'
-import {
-  CODE_FOYER, connecterFoyer, pousserDonnees, ecouterChangements,
-  codeEnregistre, enregistrerCode,
-} from './sync.js'
+import { CODE_FOYER, codeEnregistre, enregistrerCode } from './sync.js'
+import { creerMoteur } from './syncEngine.js'
 import { identiteEnregistree, enregistrerIdentite, oublierIdentite, genererIdMembre } from './identite.js'
 import { permissionNotifications, demanderPermission, notifier } from './notifications.js'
 import Cle from './components/Cle.jsx'
@@ -38,9 +36,8 @@ export default function App() {
   const [enCours, setEnCours] = useState(false)
   const [notifPermission, setNotifPermission] = useState(permissionNotifications)
 
-  const derniereEcriture = useRef(null)
-  const arretEcoute = useRef(null)
   const moiRef = useRef(moi)
+  const moteurRef = useRef(null)
 
   useEffect(() => { moiRef.current = moi }, [moi])
 
@@ -48,54 +45,42 @@ export default function App() {
     setVue(identiteEnregistree() ? 'app' : 'identite')
   }
 
-  // Compare les anciennes et nouvelles données pour notifier des nouveautés d'autrui
-  function appliquerMiseAJour(nouvelles) {
-    const completes = completer(nouvelles)
-    setDonnees((prev) => {
-      if (prev.messages && completes.messages.length > prev.messages.length) {
-        const dernier = completes.messages[completes.messages.length - 1]
-        if (dernier.auteur !== moiRef.current) {
-          notifier('🛋️ Nouveau message au Salon', `${membre(completes.membres, dernier.auteur).nom} : ${dernier.texte}`)
-        }
-      }
-      if (prev.frigo && completes.frigo.length > prev.frigo.length) {
-        const derniere = completes.frigo[completes.frigo.length - 1]
-        if (derniere.auteur !== moiRef.current) {
-          notifier('🧲 Nouveau sur le Frigo', `${membre(completes.membres, derniere.auteur).nom} a aimanté quelque chose`)
-        }
-      }
-      return completes
-    })
+  // Notification déclenchée par le moteur quand quelqu'un d'AUTRE poste
+  function surNouveaute(type, item, etat) {
+    if (type === 'message') {
+      notifier('🛋️ Nouveau message au Salon', `${membre(etat.membres, item.auteur).nom} : ${item.texte}`)
+    } else if (type === 'frigo') {
+      notifier('🧲 Nouveau sur le Frigo', `${membre(etat.membres, item.auteur).nom} a aimanté quelque chose`)
+    }
   }
 
-  function connecter() {
-    return connecterFoyer(donnees).then((d) => {
-      const completes = completer(d)
-      derniereEcriture.current = JSON.stringify(d)
-      setDonnees(completes)
-      suite()
-      arretEcoute.current = ecouterChangements(CODE_FOYER, (nouvelles) => {
-        const s = JSON.stringify(nouvelles)
-        if (s === derniereEcriture.current) return
-        derniereEcriture.current = s
-        appliquerMiseAJour(nouvelles)
-      })
-    })
-  }
-
-  // Au démarrage : si la clé a déjà été validée sur cet appareil, connexion directe
+  // Le moteur possède l'état partagé (concurrence optimiste, rejeu des changements
+  // locaux, sauvegarde locale, temps réel). L'appli n'en garde qu'un miroir affiché.
   useEffect(() => {
-    if (!supabaseActif) { suite(); return }
-    if (codeEnregistre() !== CODE_FOYER) return // la porte s'affichera
-    let annule = false
-    connecter().catch(() => {
-      if (annule) return
-      suite()
-      setErreur('Connexion à la maison impossible pour le moment — vos données restent sur cet appareil.')
+    const moteur = creerMoteur({
+      onEtat: setDonnees,
+      onNotif: surNouveaute,
+      onErreur: () => setErreur('La synchronisation a échoué — vos données restent sur cet appareil.'),
+      getMoi: () => moiRef.current,
     })
-    return () => { annule = true; arretEcoute.current?.() }
+    moteurRef.current = moteur
+
+    if (!supabaseActif) {
+      moteur.connecter().finally(suite)
+    } else if (codeEnregistre() === CODE_FOYER) {
+      moteur.connecter().then(suite).catch(() => {
+        suite()
+        setErreur('Connexion à la maison impossible pour le moment — vos données restent sur cet appareil.')
+      })
+    }
+    return () => moteur.arreter()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Tout changement de données passe par le moteur (optimiste puis synchronisé).
+  function muter(reducer) {
+    moteurRef.current?.muter(reducer)
+  }
 
   // Validation de la clé saisie sur l'écran d'entrée
   async function entrerAvecCle(saisie) {
@@ -106,8 +91,9 @@ export default function App() {
     }
     setEnCours(true)
     try {
-      await connecter()
+      await moteurRef.current.connecter()
       enregistrerCode(CODE_FOYER)
+      suite()
     } catch {
       setErreur('Connexion impossible pour le moment. Réessayez dans un instant.')
     } finally {
@@ -115,23 +101,10 @@ export default function App() {
     }
   }
 
-  // Sauvegarde locale systématique (filet de sécurité) + synchronisation Supabase
-  useEffect(() => {
-    sauvegarder(donnees)
-    if (!supabaseActif || vue !== 'app') return
-    const s = JSON.stringify(donnees)
-    if (s === derniereEcriture.current) return
-    derniereEcriture.current = s
-    pousserDonnees(CODE_FOYER, donnees).catch(() =>
-      setErreur('La synchronisation a échoué — vos données restent sur cet appareil.')
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [donnees])
-
   // Crée le profil (prénom + emoji choisis) et l'ajoute aux membres partagés du foyer
   function validerIdentite(nom, emoji) {
     const id = genererIdMembre()
-    setDonnees((d) => ({
+    muter((d) => ({
       ...d,
       membres: { ...d.membres, [id]: { nom, emoji, couleur: couleurAleatoire() } },
     }))
@@ -164,7 +137,7 @@ export default function App() {
   if (vue === 'identite') return <Identite onValider={validerIdentite} />
 
   const props = {
-    donnees, setDonnees, allerA: setOnglet, moi,
+    donnees, setDonnees: muter, allerA: setOnglet, moi,
     changerIdentite, notifPermission, demanderNotifPermission,
   }
 
