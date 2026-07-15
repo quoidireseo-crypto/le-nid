@@ -58,10 +58,10 @@ export const SEED = {
     },
   ],
   messages: [
-    { id: 'm1', auteur: 'mamie', texte: 'Bonjour mes chéris ! Qui vient dimanche ?', heure: '9:12' },
-    { id: 'm2', auteur: 'thomas', texte: 'Nous quatre, présents ! 🙋', heure: '9:30' },
-    { id: 'm3', auteur: 'papi', texte: 'Je sors la pétanque alors.', heure: '10:02' },
-    { id: 'm4', auteur: 'zoe', texte: 'Papi tu vas encore perdre 😄', heure: '10:05' },
+    { id: 'm1', auteur: 'mamie', texte: 'Bonjour mes chéris ! Qui vient dimanche ?', heure: '9:12', ts: new Date(Date.now() - 86400000).toISOString() },
+    { id: 'm2', auteur: 'thomas', texte: 'Nous quatre, présents ! 🙋', heure: '9:30', ts: new Date(Date.now() - 86400000).toISOString() },
+    { id: 'm3', auteur: 'papi', texte: 'Je sors la pétanque alors.', heure: '10:02', ts: new Date().toISOString() },
+    { id: 'm4', auteur: 'zoe', texte: 'Papi tu vas encore perdre 😄', heure: '10:05', ts: new Date().toISOString() },
   ],
   recettes: [
     {
@@ -182,7 +182,30 @@ export const STRUCTURE = {
   albums: [],
   classementQuiz: {},
   evenements: [],
+  reponsesJour: {}, // { 'AAAA-MM-JJ': { [idMembre]: { texte, ts } } } — La Question du Nid
+  luSalon: {},      // { [idMembre]: ts du dernier message vu } — accusés de lecture
 }
+
+// La Question du Nid : une question douce par jour, la même pour toute la famille.
+// On ne voit les réponses des autres qu'après avoir posté la sienne (réciprocité).
+export const QUESTIONS_DU_JOUR = [
+  "Qu'est-ce qui t'a fait sourire aujourd'hui ?",
+  "C'est quoi le plat de ce soir ?",
+  'Une petite victoire de la journée ?',
+  'À quoi penses-tu, là, maintenant ?',
+  'Quel temps fait-il chez toi ?',
+  "Qu'est-ce que tu attends avec impatience ?",
+  'La dernière chose qui t’a fait rire ?',
+  'Une chose belle vue aujourd’hui ?',
+  'De quoi as-tu envie ce week-end ?',
+  'Un souvenir qui t’est revenu récemment ?',
+  'Qu’est-ce que tu écoutes en ce moment ?',
+  'Une personne à qui tu penses aujourd’hui ?',
+  'Ton petit plaisir du jour ?',
+  'Qu’est-ce qui te ferait du bien là tout de suite ?',
+  'Une nouvelle, même toute petite, à partager ?',
+  'Qu’as-tu mangé de bon aujourd’hui ?',
+]
 
 const KEY = 'le-nid-v1'
 

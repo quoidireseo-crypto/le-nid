@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
 import { membre } from '../data.js'
+import { basculerReaction } from '../engagement.js'
 import { supabaseActif } from '../supabaseClient.js'
 import { uploaderPhoto } from '../sync.js'
+import Reactions from './Reactions.jsx'
 
 const COULEURS = ['jaune', 'rose', 'bleu']
 
@@ -48,6 +50,15 @@ export default function Frigo({ donnees, setDonnees, moi }) {
 
   function retirer(id) {
     setDonnees((d) => ({ ...d, frigo: d.frigo.filter((n) => n.id !== id) }))
+  }
+
+  function reagir(noteId, emoji) {
+    setDonnees((d) => ({
+      ...d,
+      frigo: d.frigo.map((n) =>
+        n.id === noteId ? { ...n, reactions: basculerReaction(n.reactions, emoji, moi) } : n
+      ),
+    }))
   }
 
   function cocher(noteId, index) {
@@ -148,6 +159,8 @@ export default function Frigo({ donnees, setDonnees, moi }) {
                 <span className="signature">— {membre(donnees.membres, n.auteur).nom}</span>
               </>
             )}
+
+            <Reactions reactions={n.reactions} moi={moi} onToggle={(e) => reagir(n.id, e)} />
           </article>
         ))}
       </div>

@@ -51,6 +51,8 @@ export default function App() {
       notifier('🛋️ Nouveau message au Salon', `${membre(etat.membres, item.auteur).nom} : ${item.texte}`)
     } else if (type === 'frigo') {
       notifier('🧲 Nouveau sur le Frigo', `${membre(etat.membres, item.auteur).nom} a aimanté quelque chose`)
+    } else if (type === 'question') {
+      notifier('🌱 La question du jour', `${membre(etat.membres, item.auteur).nom} a répondu`)
     }
   }
 

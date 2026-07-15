@@ -15,6 +15,7 @@
 import { supabase, supabaseActif } from './supabaseClient.js'
 import { charger, sauvegarder, completer } from './data.js'
 import { CODE_FOYER } from './sync.js'
+import { jourClef } from './engagement.js'
 
 const TABLE = 'nids'
 const RECUL_MS = 400 // léger recul avant de réessayer, pour éviter les rafales
@@ -67,6 +68,12 @@ export function creerMoteur({ onEtat, onNotif, onErreur, getMoi }) {
       const derniere = apres.frigo[apres.frigo.length - 1]
       if (derniere && derniere.auteur !== moi) onNotif?.('frigo', derniere, apres)
     }
+    // Nouvelle réponse à la question du jour (par quelqu'un d'autre)
+    const jour = jourClef(new Date())
+    const avantRep = avant.reponsesJour?.[jour] || {}
+    const apresRep = apres.reponsesJour?.[jour] || {}
+    const nouveaux = Object.keys(apresRep).filter((id) => !avantRep[id] && id !== moi)
+    if (nouveaux.length) onNotif?.('question', { auteur: nouveaux[0] }, apres)
   }
 
   function ecouter() {

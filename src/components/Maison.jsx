@@ -1,4 +1,6 @@
 import { membre } from '../data.js'
+import { calculerFlamme } from '../engagement.js'
+import QuestionDuJour from './QuestionDuJour.jsx'
 
 const ETOILES = [
   { top: '14%', left: '8%' }, { top: '8%', left: '30%' },
@@ -12,6 +14,7 @@ export default function Maison({ donnees, setDonnees, allerA, moi, changerIdenti
   const derniereRecette = donnees.recettes[0]
   const dernierAlbum = donnees.albums[donnees.albums.length - 1]
   const membres = Object.entries(donnees.membres || {})
+  const flamme = calculerFlamme(donnees)
 
   function renommerFoyer() {
     const nouveau = window.prompt('Quel est le nom de votre famille ?', donnees.nomFamille)
@@ -103,6 +106,23 @@ export default function Maison({ donnees, setDonnees, allerA, moi, changerIdenti
           </div>
         </div>
 
+        <div className="flamme-nid" role="status">
+          {flamme.jours > 0 ? (
+            <>
+              <span className="flamme-emoji" aria-hidden="true">🔥</span>
+              <span>
+                <strong>{flamme.jours} jour{flamme.jours > 1 ? 's' : ''}</strong> d'affilée en famille
+                {!flamme.aujourdhui && ' — un petit mot aujourd’hui pour l’entretenir ?'}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="flamme-emoji eteinte" aria-hidden="true">🔥</span>
+              <span>Allumez la flamme : donnez des nouvelles aujourd’hui.</span>
+            </>
+          )}
+        </div>
+
         <div className="perron">
           <h3>Sur le pas de la porte</h3>
           <div className="rangee-avatars">
@@ -115,6 +135,8 @@ export default function Maison({ donnees, setDonnees, allerA, moi, changerIdenti
           </div>
         </div>
       </header>
+
+      <QuestionDuJour donnees={donnees} setDonnees={setDonnees} moi={moi} />
 
       {notifPermission === 'default' && (
         <div className="carte" role="status">

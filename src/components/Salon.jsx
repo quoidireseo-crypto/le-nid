@@ -1,15 +1,44 @@
 import { useState, useRef, useEffect } from 'react'
 import { membre } from '../data.js'
+import { basculerReaction } from '../engagement.js'
+import Reactions from './Reactions.jsx'
 
 export default function Salon({ donnees, setDonnees, moi }) {
   const [texte, setTexte] = useState('')
   const [appelEnCours, setAppelEnCours] = useState(null)
   const finRef = useRef(null)
   const membres = Object.entries(donnees.membres || {})
+  const dernier = donnees.messages[donnees.messages.length - 1]
 
   useEffect(() => {
     finRef.current?.scrollIntoView({ block: 'end' })
   }, [donnees.messages.length])
+
+  // Accusé de lecture : en ouvrant le Salon (ou à l'arrivée d'un message), on
+  // note qu'on a vu jusqu'au dernier message. Les autres voient alors « Vu par ».
+  useEffect(() => {
+    if (!moi || !dernier?.ts) return
+    if (donnees.luSalon?.[moi] === dernier.ts) return
+    setDonnees((d) => ({ ...d, luSalon: { ...d.luSalon, [moi]: dernier.ts } }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dernier?.ts, moi])
+
+  function reagir(msgId, emoji) {
+    setDonnees((d) => ({
+      ...d,
+      messages: d.messages.map((m) =>
+        m.id === msgId ? { ...m, reactions: basculerReaction(m.reactions, emoji, moi) } : m
+      ),
+    }))
+  }
+
+  // Membres (autres que l'auteur et moi) ayant vu le dernier message
+  const vuPar = dernier?.ts
+    ? membres
+        .filter(([id]) => id !== dernier.auteur && id !== moi)
+        .filter(([id]) => (donnees.luSalon?.[id] || '') >= dernier.ts)
+        .map(([, m]) => m.nom.split(' ')[0])
+    : []
 
   function envoyer(e) {
     e.preventDefault()
@@ -69,10 +98,14 @@ export default function Salon({ donnees, setDonnees, moi }) {
                 {!estMoi && <div className="qui">{auteur.nom}</div>}
                 <div>{msg.texte}</div>
                 <div className="heure">{msg.heure}</div>
+                <Reactions reactions={msg.reactions} moi={moi} onToggle={(e) => reagir(msg.id, e)} />
               </div>
             </div>
           )
         })}
+        {vuPar.length > 0 && (
+          <p className="vu-par">Vu par {vuPar.join(', ')}</p>
+        )}
         <div ref={finRef} />
       </div>
 
