@@ -111,8 +111,9 @@ L'appli est **installable** : sur le lien Vercel, le navigateur propose « Ajout
 
 ## Limites actuelles (honnêtes)
 
-- Les appels vidéo du Salon sont une démo (pas de vrai flux vidéo).
-- Les photos du Frigo sont réelles (importées depuis l'appareil) si le stockage Supabase est activé ; les albums du Grenier restent illustrés par des emoji pour l'instant.
+- Le Salon accepte le texte **et la voix** (notes vocales, si le stockage Supabase est activé). La fausse démo d'appel a été retirée ; de vrais appels vidéo (WebRTC) restent un chantier d'infrastructure à part, non prioritaire face à la force du modèle asynchrone.
+- Les photos du Frigo **et les albums du Grenier** sont réelles (importées depuis l'appareil) dès que le stockage Supabase est activé. Le bouton **« 🖨️ Livre photo »** du Grenier met en page les albums pour l'impression (l'amorce d'une future commande de livre imprimé).
+- Le **Quiz du Jardin est vivant** : ses questions sont générées à partir du vrai contenu de la famille (recettes, frigo, événements), et complétées par quelques questions types quand le Nid est encore peu rempli.
 - **Notifications** : par défaut, ce sont des notifications navigateur (appli ouverte). Les **vraies notifications push** qui réveillent le téléphone appli fermée sont désormais disponibles en option — voir la section 2f (table `subscriptions` + fonction Edge `pousser-notifications` + clés VAPID).
 - La sécurité repose sur la clé du foyer, pas sur un vrai compte utilisateur avec mot de passe — suffisant pour un usage familial de confiance, mais à faire évoluer si le projet grandit.
 - Un **nouveau foyer démarre désormais vierge** (plus de fuite des données de démo « Dupont ») : chaque famille remplit son propre Nid. Les données de démo ne servent qu'à l'aperçu local, quand Supabase n'est pas branché.

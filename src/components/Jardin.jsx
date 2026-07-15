@@ -1,13 +1,21 @@
 import { useState } from 'react'
 import { QUIZ, membre } from '../data.js'
+import { genererQuiz, melanger } from '../quiz.js'
 
-function melanger(tableau) {
-  const copie = [...tableau]
-  for (let i = copie.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[copie[i], copie[j]] = [copie[j], copie[i]]
+// Construit 8 questions : d'abord celles générées depuis les vraies données de la
+// famille (quiz vivant), complétées si besoin par les questions statiques.
+function construireQuestions(donnees) {
+  const vivant = melanger(genererQuiz(donnees))
+  const pool = [...vivant, ...melanger(QUIZ)]
+  const vues = new Set()
+  const sortie = []
+  for (const q of pool) {
+    if (vues.has(q.question)) continue
+    vues.add(q.question)
+    sortie.push(q)
+    if (sortie.length === 8) break
   }
-  return copie
+  return sortie
 }
 
 function messageFinal(score, total) {
@@ -28,7 +36,7 @@ function classementTrie(membres, classement) {
 export default function Jardin({ donnees, setDonnees }) {
   const [etape, setEtape] = useState('choix') // choix | jeu | fin
   const [joueurId, setJoueurId] = useState(null)
-  const [questions, setQuestions] = useState(() => melanger(QUIZ))
+  const [questions, setQuestions] = useState(() => construireQuestions(donnees))
   const [index, setIndex] = useState(0)
   const [choix, setChoix] = useState(null)
   const [score, setScore] = useState(0)
@@ -38,7 +46,7 @@ export default function Jardin({ donnees, setDonnees }) {
 
   function commencer(id) {
     setJoueurId(id)
-    setQuestions(melanger(QUIZ))
+    setQuestions(construireQuestions(donnees))
     setIndex(0)
     setChoix(null)
     setScore(0)

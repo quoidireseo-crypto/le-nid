@@ -4,6 +4,19 @@
 
 ---
 
+## ✅ État d'avancement (implémenté)
+
+Les quatre phases du plan séquencé ont été implémentées et vérifiées (build + tests de logique pure + smoke tests navigateur) :
+
+- **Phase 0 — Fondations** : moteur de synchronisation à concurrence optimiste (fin du « dernier qui écrit gagne »), horodatages ISO, PWA installable + service worker, onboarding vierge (fin de la fuite des données de démo).
+- **Phase 1 — Rétention** : La Question du Nid (rituel quotidien type BeReal), Réactions + « Vu par », La Flamme du Nid (streak collectif).
+- **Phase 2 — Croissance** : multi-foyer + invitation par lien (`?nid=`) et partage natif, souvenirs « Ce jour-là », socle des vrais push (table `subscriptions` + fonction Edge, déploiement documenté).
+- **Phase 3 — Différenciation** : Quiz vivant (généré depuis les vraies données), Grenier collaboratif (vraies photos + albums), notes vocales au Salon, livre photo imprimable, retrait de la fausse démo d'appel.
+
+Restent volontairement hors périmètre (infra lourde / paiements) : les appels vidéo temps réel (WebRTC) et la monétisation par paiement (abonnement Nid+, commande de livre imprimé) — le livre photo imprimable en pose l'amorce.
+
+---
+
 ## Partie 1 — Diagnostic de l'existant
 
 ### 1.1 But principal & problème résolu

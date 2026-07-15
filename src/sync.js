@@ -52,11 +52,21 @@ export async function pousserDonnees(code, donnees) {
 
 export async function uploaderPhoto(fichier) {
   const extension = fichier.name.split('.').pop() || 'jpg'
+  return uploaderFichier(fichier, extension)
+}
+
+// Envoi générique d'un fichier (photo, audio…) dans le bucket "photos".
+export async function uploaderFichier(fichier, extension = 'bin') {
   const nomFichier = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`
   const { error } = await supabase.storage.from('photos').upload(nomFichier, fichier)
   if (error) throw error
   const { data } = supabase.storage.from('photos').getPublicUrl(nomFichier)
   return data.publicUrl
+}
+
+// Note vocale : on envoie le blob audio enregistré et on récupère son URL publique.
+export async function uploaderAudio(blob) {
+  return uploaderFichier(blob, 'webm')
 }
 
 // Écoute les changements poussés par les autres appareils du même foyer.
